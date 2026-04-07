@@ -1,17 +1,18 @@
-package api;
+package api.tests;
 
+import api.CourierApi;
 import api.models.Courier;
 import io.qameta.allure.Step;
 import org.junit.jupiter.api.DisplayName;
-import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import static org.apache.http.HttpStatus.*;
 import static org.hamcrest.Matchers.*;
 
-public class CourierTest {
+public class CourierCreationTest extends BaseTest { // Наследование
 
     private Courier courier;
     private String courierId;
@@ -19,7 +20,6 @@ public class CourierTest {
     @BeforeEach
     @Step("Настройка тестовых данных")
     public void setUp() {
-        RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru";
         courier = new Courier("default_login", "default_password", "default_firstName");
     }
 
@@ -27,7 +27,7 @@ public class CourierTest {
     @Step("Удаление тестовых данных")
     public void tearDown() {
         if (courierId != null) {
-            deleteCourier(courierId);
+            CourierApi.deleteCourier(courierId);
         }
     }
 
@@ -50,6 +50,9 @@ public class CourierTest {
         CourierApi.createCourier(courier);
         Response response = CourierApi.createCourier(courier);
         verifyDuplicateCourierError(response);
+        //Сохраняем ID, чтобы удалить в tearDown
+        Response loginResponse = CourierApi.loginCourier(courier);
+        courierId = loginResponse.then().extract().path("id").toString();
     }
 
     @Test
@@ -68,34 +71,6 @@ public class CourierTest {
         Courier invalidCourier = new Courier(courier.getLogin(), "", courier.getFirstName());
         Response response = CourierApi.createCourier(invalidCourier);
         verifyRequiredFieldsError(response);
-    }
-
-    @Test
-    @DisplayName("Логин курьера")
-    @Step("Тест: Логин курьера")
-    public void testLoginCourier() {
-        CourierApi.createCourier(courier);
-        Response response = CourierApi.loginCourier(courier);
-        verifySuccessfulLogin(response);
-        courierId = response.then().extract().path("id").toString();
-    }
-
-    @Test
-    @DisplayName("Логин курьера с неверным логином")
-    @Step("Тест: Логин курьера с неверным логином")
-    public void testLoginCourierWithInvalidLogin() {
-        Courier invalidCourier = new Courier("invalid", courier.getPassword(), "");
-        Response response = CourierApi.loginCourier(invalidCourier);
-        verifyInvalidLoginError(response);
-    }
-
-    @Test
-    @DisplayName("Логин курьера с неверным паролем")
-    @Step("Тест: Логин курьера с неверным паролем")
-    public void testLoginCourierWithInvalidPassword() {
-        Courier invalidCourier = new Courier(courier.getLogin(), "invalid", "");
-        Response response = CourierApi.loginCourier(invalidCourier);
-        verifyInvalidLoginError(response);
     }
 
     @Step("Удаление курьера с ID: {courierId}")
@@ -130,21 +105,5 @@ public class CourierTest {
                 .assertThat().statusCode(SC_BAD_REQUEST)
                 .and()
                 .body("message", equalTo("Недостаточно данных для создания учетной записи"));
-    }
-
-    @Step("Проверка успешного логина")
-    private void verifySuccessfulLogin(Response response) {
-        response.then().log().all()
-                .assertThat().statusCode(SC_OK)
-                .and()
-                .body("id", notNullValue());
-    }
-
-    @Step("Проверка ошибки при неверных данных")
-    private void verifyInvalidLoginError(Response response) {
-        response.then().log().all()
-                .assertThat().statusCode(SC_NOT_FOUND)
-                .and()
-                .body("message", equalTo("Учетная запись не найдена"));
     }
 }

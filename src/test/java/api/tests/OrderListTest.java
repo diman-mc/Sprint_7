@@ -1,5 +1,6 @@
-package api;
+package api.tests;
 
+import api.OrderApi;
 import io.qameta.allure.Step;
 import org.junit.jupiter.api.DisplayName;
 import io.restassured.RestAssured;
@@ -8,13 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.hamcrest.Matchers.notNullValue;
 
-public class OrderListTest {
-
-    @BeforeEach
-    @Step("Настройка тестовых данных")
-    public void setUp() {
-        RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru";
-    }
+public class OrderListTest extends BaseTest { //Наследование от BaseTest
 
     @Test
     @DisplayName("Получение списка заказов через ручку /v1/orders")
